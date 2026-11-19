@@ -1,2 +1,165 @@
-# student-vote
-uchaguzi wa viongozi wa wanafunzi
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUMA - Student Election</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',Arial;background:linear-gradient(135deg,#0B2C4A,#123F66);min-height:100vh;color:#333}
+.topbar{background:#0B2C4A;color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center}
+.topbar b{color:#F2B705}.card{background:#fff;max-width:500px;margin:25px auto;padding:28px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.hero{height:280px;position:relative;overflow:hidden}.hero img{width:100%;height:100%;object-fit:cover}
+.hero .overlay{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);color:#fff;padding:15px;text-align:center}
+.hero .overlay h1{margin:0;color:#F2B705;font-size:32px}input{width:100%;padding:13px;margin:8px 0;border:1px solid #ddd;border-radius:12px}
+button{background:#F2B705;color:#0B2C4A;padding:14px;border:none;border-radius:12px;width:100%;font-weight:800;cursor:pointer;font-size:16px;margin-top:8px}
+button:hover{background:#FFC93C}button.danger{background:#e74c3c;color:#fff}button.secondary{background:#0B2C4A;color:#fff}
+.candidate-card{background:#fff;border-radius:16px;padding:15px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,.12);margin:12px 0}
+.candidate-card img{width:140px;height:140px;border-radius:50%;object-fit:cover;border:4px solid #0B2C4A}
+.candidate-card .sela{background:#FFF3CD;padding:6px;border-radius:8px;font-size:13px}.container{max-width:700px;margin:20px auto;padding:0 15px}
+.admin-stats{background:#fff;padding:20px;border-radius:16px}table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+td,th{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}.center{text-align:center}.hidden{display:none}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: LOGIN -->
+<div id="page-login">
+<div class="hero">
+<img src="images/tuma-campus.jpg" onerror="this.src='https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1000'">
+<div class="overlay"><h1>TUMA - Student Election</h1><p>Tumaini University Makumira | Chagua Kiongozi Wako</p></div>
+</div>
+<div class="card">
+<h2 class="center">INGIA KUPIGA KURA</h2>
+<p class="center" style="font-size:13px;color:#666">Tumia Registration Number uliyopewa na Admin</p>
+<input id="regNo" placeholder="Reg No e.g TUMA001 / ADMIN001">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">INGIA</button>
+<p class="center" style="font-size:13px">Jaribu: <b>TUMA001 / 12345</b> | Admin: <b>ADMIN001 / admin123</b></p>
+<p class="center" style="font-size:12px;color:#888">Hujasajiliwa? Wasiliana na Admin akusajili.</p>
+</div>
+</div>
+
+<!-- PAGE 2: BALLOT - MWANAFUNZI HAONI IDADI -->
+<div id="page-ballot" class="hidden">
+<div class="topbar"><b>TUMA <span style="color:#F2B705">VOTE</span></b><button style="width:auto;padding:8px 15px" onclick="logout()">Toka</button></div>
+<div class="container">
+<div class="card"><h2 class="center">Karibu, <span id="sName"></span></h2><p class="center">Chagua mgombea wako. Kura yako ni <b>SIRI</b>.</p></div>
+<div id="candidatesList"></div>
+</div>
+</div>
+
+<!-- PAGE 3: ADMIN - ADMIN TU ANAONA IDADI -->
+<div id="page-admin" class="hidden">
+<div class="topbar"><b>ADMIN <span style="color:#F2B705">DASHBOARD</span></b><button style="width:auto;padding:8px 15px" onclick="logout()">Toka</button></div>
+<div class="container">
+<div class="admin-stats">
+<h2>Matokeo - Admin Tu</h2>
+<p><b>Wanafunzi Waliosajiliwa:</b> <span id="totalVoters">0</span></p>
+<p><b>Wameshapiga Kura:</b> <span id="totalVoted">0</span></p>
+<p><b>Idadi ya Admin:</b> <span id="totalAdmins">0</span></p>
+<div id="results"></div>
+<button class="danger" onclick="resetElection()">RESET UCHAGUZI MZIMA - Anza Upya</button>
+</div>
+<div class="card"><h3>Ongeza Mwanafunzi Mpya</h3>
+<input id="newReg" placeholder="Reg No e.g TUMA010"><input id="newName" placeholder="Jina Kamili">
+<button onclick="addVoter()">Ongeza Mwanafunzi</button></div>
+<div class="card"><h3>Ongeza Admin Mpya</h3>
+<input id="adminReg" placeholder="Admin Reg e.g ADMIN016"><input id="adminName" placeholder="Jina la Admin">
+<button class="secondary" onclick="addAdmin()">Ongeza Admin</button></div>
+<h3 style="color:white">Orodha ya Wanafunzi</h3>
+<table><thead><tr><th>Reg No</th><th>Jina</th><th>Amepiga?</th><th>Futa</th></tr></thead><tbody id="voterList"></tbody></table>
+</div>
+</div>
+
+<script>
+// DATA
+if(!localStorage.getItem('voters')) localStorage.setItem('voters', JSON.stringify([
+{regNo:"TUMA001",name:"Juma Mushi",password:"12345",hasVoted:false},
+{regNo:"TUMA002",name:"Neema Joseph",password:"12345",hasVoted:false},
+{regNo:"TUMA003",name:"Baraka Mushi",password:"12345",hasVoted:false}]));
+if(!localStorage.getItem('admins')){let a=[];for(let i=1;i<=15;i++){let n=String(i).padStart(3,'0');a.push({regNo:"ADMIN"+n,name:"Admin "+i,password:"admin123"})}localStorage.setItem('admins',JSON.stringify(a))}
+if(!localStorage.getItem('candidates')) localStorage.setItem('candidates', JSON.stringify([
+{id:1,name:"Neema Joseph",position:"President",sela:"TUMA / BIT 2",manifesto:"Elimu bora na huduma za wanafunzi",photo:"images/neema.jpg"},
+{id:2,name:"Baraka Mushi",position:"President",sela:"TUMA / BIT 2",manifesto:"Uwazi na maendeleo ya chuo",photo:"images/baraka.jpg"},
+{id:3,name:"Grace Samwel",position:"Vice President",sela:"TUMA / BIT 1",manifesto:"Michezo na afya ya wanafunzi",photo:"images/default.jpg"}]));
+if(!localStorage.getItem('votes')) localStorage.setItem('votes', JSON.stringify([]));
+function getVoters(){return JSON.parse(localStorage.getItem('voters')||'[]')}
+function getVotes(){return JSON.parse(localStorage.getItem('votes')||'[]')}
+function getCandidates(){return JSON.parse(localStorage.getItem('candidates')||'[]')}
+function saveVoters(v){localStorage.setItem('voters',JSON.stringify(v))}
+function saveVotes(v){localStorage.setItem('votes',JSON.stringify(v))}
+function show(id){['page-login','page-ballot','page-admin'].forEach(p=>document.getElementById(p).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
+
+// 3. LOGIN KWA REG NO TU - ADMIN NDIO ANASAJILI
+function login(){
+let reg=document.getElementById('regNo').value.trim().toUpperCase();
+let pass=document.getElementById('password').value.trim();
+let voters=getVoters();let admins=JSON.parse(localStorage.getItem('admins')||'[]');
+let admin=admins.find(a=>a.regNo===reg&&a.password===pass);
+if(admin){localStorage.setItem('currentAdmin',JSON.stringify(admin));loadAdmin();show('page-admin');return}
+let voter=voters.find(v=>v.regNo===reg&&v.password===pass);
+if(!voter){alert("Hujasajiliwa! Wasiliana na Admin akusajili kwanza.");return}
+if(voter.hasVoted){alert("Umeshapiga kura tayari! Asante.");return}
+localStorage.setItem('currentUser',JSON.stringify(voter));
+document.getElementById('sName').textContent=voter.name;
+let cands=getCandidates();
+document.getElementById('candidatesList').innerHTML=cands.map(c=>`
+<div class="candidate-card">
+<img src="${c.photo}" onerror="this.src='https://i.pravatar.cc/150?u=${c.name}'">
+<h3>${c.name}</h3><div style="color:#666">${c.position}</div>
+<p>${c.manifesto}</p><div class="sela">Sela: ${c.sela}</div><br>
+<button onclick="doVote(${c.id},'${c.name}')">Mpigie Kura ${c.name}</button>
+</div>`).join('');
+show('page-ballot');
+}
+function doVote(cid,cname){
+let user=JSON.parse(localStorage.getItem('currentUser')||'null');if(!user)return show('page-login');
+if(!confirm("Unampigia "+cname+"? Hutoweza kubadilisha."))return;
+let votes=getVotes();votes.push({voterRegNo:user.regNo,candidateId:cid,time:new Date().toLocaleString()});saveVotes(votes);
+let voters=getVoters().map(v=>v.regNo===user.regNo?{...v,hasVoted:true}:v);saveVoters(voters);
+localStorage.removeItem('currentUser');alert("Asante "+user.name+"! Kura yako imepokelewa na ni SIRI.");show('page-login');
+}
+function addVoter(){
+let reg=document.getElementById('newReg').value.trim().toUpperCase();
+let name=document.getElementById('newName').value.trim();
+if(!reg||!name)return alert("Jaza Reg No na Jina");
+let voters=getVoters();if(voters.find(v=>v.regNo===reg))return alert("Huyu yupo tayari!");
+voters.push({regNo:reg,name:name,password:"12345",hasVoted:false});saveVoters(voters);
+alert("Ameongezwa! Reg: "+reg+" Password: 12345");loadAdmin();
+}
+// 1. KUFUTA MTU = KURA YAKE INAFUTIKA PIA
+function deleteVoter(regNo){
+if(!confirm("Mfute "+regNo+"? Kura yake itafutika pia."))return;
+let voters=getVoters().filter(v=>v.regNo!==regNo);saveVoters(voters);
+let votes=getVotes().filter(v=>v.voterRegNo!==regNo);saveVotes(votes);
+alert("Amefutwa kabisa na kura yake imefutika.");loadAdmin();
+}
+function resetElection(){
+if(!confirm("Kufuta KURA ZOTE na kuanza upya?"))return;
+saveVotes([]);let voters=getVoters().map(v=>({...v,hasVoted:false}));saveVoters(voters);
+alert("Uchaguzi umeanzishwa upya!");loadAdmin();
+}
+// 7. ADMIN WENGI
+function addAdmin(){
+let reg=document.getElementById('adminReg').value.trim().toUpperCase();
+let name=document.getElementById('adminName').value.trim();
+if(!reg||!name)return alert("Jaza Reg na Jina la Admin");
+let admins=JSON.parse(localStorage.getItem('admins')||'[]');admins.push({regNo:reg,name:name,password:"admin123"});
+localStorage.setItem('admins',JSON.stringify(admins));alert("Admin "+name+" ameongezwa. Jumla: "+admins.length);loadAdmin();
+}
+// 6. ADMIN TU ANAONA IDADI
+function loadAdmin(){
+let voters=getVoters(),votes=getVotes(),cands=getCandidates();
+document.getElementById('totalVoters').textContent=voters.length;
+document.getElementById('totalVoted').textContent=voters.filter(v=>v.hasVoted).length;
+document.getElementById('totalAdmins').textContent=JSON.parse(localStorage.getItem('admins')||'[]').length;
+document.getElementById('results').innerHTML=cands.map(c=>{
+let count=votes.filter(v=>v.candidateId===c.id).length;
+return <p><b>${c.name} (${c.position}):</b> ${count} kura</p><div style="background:#eee;height:12px;border-radius:10px;overflow:hidden"><div style="width:${votes.length?(count/votes.length*100):0}%;background:#F2B705;height:12px"></div></div>;
+}).join('');
+document.getElementById('voterList').innerHTML=voters.map(v=><tr><td>${v.regNo}</td><td>${v.name}</td><td>${v.hasVoted?'✅ Ndio':'❌ Bado'}</td><td><button class="danger" style="padding:6px" onclick="deleteVoter('${v.regNo}')">Futa</button></td></tr>).join('');
+}
+function logout(){localStorage.removeItem('currentUser');localStorage.removeItem('currentAdmin');show('page-login')}
+</script>
+</body>
+</html>
